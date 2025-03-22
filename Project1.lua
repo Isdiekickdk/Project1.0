@@ -1,184 +1,171 @@
--- Made by Mister ToXxiC
--- Services
+-- Fisch Hub Mobile-Friendly by Mister C
+
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
-local LP = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
 
--- Settings
-local AimbotEnabled = true
-local ESPEnabled = true
-local FOV = 100
-local Smoothness = 0.12
-
--- FOV Circle
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Filled = false
-FOVCircle.Thickness = 2
-FOVCircle.NumSides = 100
-FOVCircle.Radius = FOV
-FOVCircle.Visible = true
-
--- Rainbow function
-local function getRainbow()
-	local t = tick()
-	return Color3.fromHSV((t % 5) / 5, 1, 1)
+-- Safe Teleport Function
+local function safeTweenTP(target)
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local dist = (hrp.Position - target).Magnitude
+	local t = math.clamp(dist / 50, 1, 4)
+	local tween = TweenService:Create(hrp, TweenInfo.new(t, Enum.EasingStyle.Linear), {CFrame = CFrame.new(target)})
+	tween:Play()
 end
 
--- GUI
+-- Lokasi Teleport
+local Locations = {
+	["Mousewood"] = Vector3.new(72, 3, -470),
+	["Forsaken Veil"] = Vector3.new(-180, 3, -680),
+	["Ancient Isle"] = Vector3.new(430, 3, -310),
+}
+
+-- UI Setup
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.ResetOnSpawn = false
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 180, 0, 140)
-frame.Position = UDim2.new(0, 10, 0, 200)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-frame.BackgroundTransparency = 0.2
+-- Tombol kecil [≡] pojok kiri atas
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0, 40, 0, 40)
+toggleBtn.Position = UDim2.new(0, 5, 0, 5)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+toggleBtn.Text = "≡"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.ZIndex = 5
 
-local function createButton(name, posY, callback)
-	local btn = Instance.new("TextButton", frame)
-	btn.Size = UDim2.new(1, -10, 0, 25)
-	btn.Position = UDim2.new(0, 5, 0, posY)
+-- Frame utama
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 260, 0, 230)
+frame.Position = UDim2.new(0.05, 0, 0.5, -115)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+Instance.new("UIStroke", frame).Color = Color3.fromRGB(70, 70, 70)
+
+frame.Visible = true
+
+toggleBtn.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+end)
+
+-- Dropdown UI
+local selectedLocation = nil
+local dropBtn = Instance.new("TextButton", frame)
+dropBtn.Size = UDim2.new(1, -20, 0, 30)
+dropBtn.Position = UDim2.new(0, 10, 0, 10)
+dropBtn.Text = "Select Location ▼"
+dropBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+dropBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local dropList = Instance.new("Frame", frame)
+dropList.Size = UDim2.new(1, -20, 0, 90)
+dropList.Position = UDim2.new(0, 10, 0, 40)
+dropList.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+dropList.Visible = false
+
+local y = 0
+for name, _ in pairs(Locations) do
+	local btn = Instance.new("TextButton", dropList)
+	btn.Size = UDim2.new(1, 0, 0, 30)
+	btn.Position = UDim2.new(0, 0, 0, y)
 	btn.Text = name
-	btn.TextScaled = true
 	btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.MouseButton1Click:Connect(callback)
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.MouseButton1Click:Connect(function()
+		selectedLocation = name
+		dropBtn.Text = "Selected: " .. name .. " ▼"
+		dropList.Visible = false
+	end)
+	y += 30
 end
 
-createButton("Toggle Aimbot", 5, function()
-	AimbotEnabled = not AimbotEnabled
+dropBtn.MouseButton1Click:Connect(function()
+	dropList.Visible = not dropList.Visible
 end)
 
-createButton("Toggle ESP", 35, function()
-	ESPEnabled = not ESPEnabled
+-- Tombol Teleport
+local tpBtn = Instance.new("TextButton", frame)
+tpBtn.Size = UDim2.new(1, -20, 0, 30)
+tpBtn.Position = UDim2.new(0, 10, 0, 100)
+tpBtn.Text = "Teleport"
+tpBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+tpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+tpBtn.MouseButton1Click:Connect(function()
+	if selectedLocation and Locations[selectedLocation] then
+		safeTweenTP(Locations[selectedLocation])
+	end
 end)
 
-createButton("FOV +10", 65, function()
-	FOV = FOV + 10
+-- Toggle Switch Creator
+local function createSwitch(name, posY, callback)
+	local label = Instance.new("TextLabel", frame)
+	label.Text = name
+	label.Position = UDim2.new(0, 10, 0, posY)
+	label.Size = UDim2.new(0, 130, 0, 25)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.TextXAlignment = Enum.TextXAlignment.Left
+
+	local switch = Instance.new("Frame", frame)
+	switch.Position = UDim2.new(0, 140, 0, posY + 2)
+	switch.Size = UDim2.new(0, 50, 0, 20)
+	switch.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	switch.BorderSizePixel = 0
+
+	local circle = Instance.new("Frame", switch)
+	circle.Size = UDim2.new(0, 16, 0, 16)
+	circle.Position = UDim2.new(0, 2, 0, 2)
+	circle.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+	circle.BorderSizePixel = 0
+	circle.Name = "ToggleCircle"
+
+	local on = false
+	switch.InputBegan:Connect(function()
+		on = not on
+		if on then
+			switch.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+			circle.Position = UDim2.new(1, -18, 0, 2)
+		else
+			switch.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+			circle.Position = UDim2.new(0, 2, 0, 2)
+		end
+		callback(on)
+	end)
+end
+
+-- Auto Fish
+local autoFish = false
+createSwitch("Auto Fish", 140, function(state)
+	autoFish = state
 end)
 
-createButton("FOV -10", 95, function()
-	FOV = math.max(10, FOV - 10)
-end)
-
-createButton("Smooth +0.01", 125, function()
-	Smoothness = Smoothness + 0.01
-end)
-
--- Aimbot Targeting
-local function getClosestTarget()
-	local closest, dist = nil, math.huge
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= LP and plr.Character and plr.Character:FindFirstChild("Head") then
-			local head = plr.Character.Head
-			local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-			if onScreen then
-				local mag = (Vector2.new(screenPos.X, screenPos.Y) - Camera.ViewportSize/2).Magnitude
-				if mag < FOV and mag < dist then
-					local ray = workspace:Raycast(Camera.CFrame.Position, (head.Position - Camera.CFrame.Position).Unit * 500, {
-						FilterDescendantsInstances = {LP.Character}, 
-						FilterType = Enum.RaycastFilterType.Blacklist
-					})
-					if not ray or ray.Instance:IsDescendantOf(plr.Character) then
-						closest = plr
-						dist = mag
-					end
-				end
+task.spawn(function()
+	while task.wait(2.5) do
+		if autoFish then
+			local ev = ReplicatedStorage:FindFirstChild("FishingEvent")
+			if ev then
+				ev:FireServer("Cast")
+				task.wait(2.5)
+				ev:FireServer("Reel")
 			end
 		end
 	end
-	return closest
-end
+end)
 
--- ESP Storage
-local drawings = {}
+-- Auto Sell
+local autoSell = false
+createSwitch("Auto Sell", 170, function(state)
+	autoSell = state
+end)
 
-local function createESP(plr)
-	local box = Drawing.new("Square")
-	box.Thickness = 2
-	box.Filled = false
-	box.Color = Color3.fromRGB(0, 255, 0)
-
-	local line = Drawing.new("Line")
-	line.Thickness = 1.5
-	line.Color = Color3.fromRGB(255, 255, 255)
-
-	local charm = Drawing.new("Circle")
-	charm.Radius = 4
-	charm.Filled = true
-	charm.Color = Color3.fromRGB(255, 0, 0)
-
-	drawings[plr] = {
-		Box = box,
-		Line = line,
-		Charm = charm
-	}
-end
-
-local function removeESP(plr)
-	if drawings[plr] then
-		for _, d in pairs(drawings[plr]) do
-			d:Remove()
-		end
-		drawings[plr] = nil
-	end
-end
-
-Players.PlayerAdded:Connect(createESP)
-Players.PlayerRemoving:Connect(removeESP)
-
-for _, plr in ipairs(Players:GetPlayers()) do
-	if plr ~= LP then createESP(plr) end
-end
-
--- Main Loop
-RunService.RenderStepped:Connect(function()
-	local center = Camera.ViewportSize / 2
-	FOVCircle.Position = center
-	FOVCircle.Radius = FOV
-	FOVCircle.Color = getRainbow()
-	FOVCircle.Visible = AimbotEnabled
-
-	-- Aimbot
-	if AimbotEnabled then
-		local target = getClosestTarget()
-		if target and target.Character and target.Character:FindFirstChild("Head") then
-			local headPos = target.Character.Head.Position
-			local dir = (headPos - Camera.CFrame.Position).Unit
-			local newCF = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + dir)
-			Camera.CFrame = Camera.CFrame:Lerp(newCF, Smoothness)
-		end
-	end
-
-	-- ESP
-	for plr, esp in pairs(drawings) do
-		local char = plr.Character
-		if ESPEnabled and char and char:FindFirstChild("Head") and char:FindFirstChild("HumanoidRootPart") then
-			local headPos = char.Head.Position
-			local rootPos = char.HumanoidRootPart.Position
-
-			local top = Camera:WorldToViewportPoint(headPos + Vector3.new(0, 0.5, 0))
-			local bottom = Camera:WorldToViewportPoint(rootPos - Vector3.new(0, 2.5, 0))
-			local sizeY = math.abs(top.Y - bottom.Y)
-			local sizeX = sizeY / 1.5
-			local boxPos = Vector2.new(top.X - sizeX/2, top.Y)
-
-			esp.Box.Size = Vector2.new(sizeX, sizeY)
-			esp.Box.Position = boxPos
-			esp.Box.Visible = true
-
-			local headScreen = Camera:WorldToViewportPoint(headPos)
-			esp.Line.From = Vector2.new(Camera.ViewportSize.X/2, 0)
-			esp.Line.To = Vector2.new(headScreen.X, headScreen.Y)
-			esp.Line.Visible = true
-
-			esp.Charm.Position = Vector2.new(headScreen.X, headScreen.Y)
-			esp.Charm.Visible = true
-		else
-			esp.Box.Visible = false
-			esp.Line.Visible = false
-			esp.Charm.Visible = false
+task.spawn(function()
+	while task.wait(60) do
+		if autoSell then
+			local sell = ReplicatedStorage:FindFirstChild("SellFish")
+			if sell then
+				sell:FireServer()
+			end
 		end
 	end
 end)
