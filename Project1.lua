@@ -1,152 +1,119 @@
--- Fisch Hub - Mobile Edition FINAL
--- Made by Mister C
+--[[  
+    Speed Hub for Fisch - by Mister C  
+    Fitur: Auto Mancing (smart), Auto Jual, Teleport, Auto Beli, Server Sepi, Anti-Ban, Reconnect
+--]]
 
--- Services
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
-local TweenService = game:GetService("TweenService")
-local Lighting = game:GetService("Lighting")
-local PlaceId = game.PlaceId
+local Library = loadstring(game:HttpGet("https://pastebin.com/raw/VQ9YpNpy"))() -- UI Library
+local plr = game.Players.LocalPlayer
+local FischRemote = game:GetService("ReplicatedStorage").RemoteEvent
 
--- === ANTI LAG BOOSTER ===
+-- Anti-AFK
 pcall(function()
-    Lighting.FogEnd = 100000
-    Lighting.FogStart = 0
-    Lighting.GlobalShadows = false
-    Lighting.Brightness = 1
-    Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+    game:GetService("Players").LocalPlayer.Idled:Connect(function()
+        local VU = game:GetService("VirtualUser")
+        VU:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        VU:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    end)
+end)
 
-    for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
-            v.Enabled = false
-        elseif v:IsA("Decal") then
-            v.Transparency = 1
-        elseif v:IsA("Explosion") then
-            v.Visible = false
-        elseif v:IsA("MeshPart") or v:IsA("BasePart") then
-            v.Material = Enum.Material.SmoothPlastic
-            v.Reflectance = 0
+-- UI Setup
+local win = Library:CreateWindow("Speed Hub - Fisch")
+local autoTab = win:CreateTab("Auto")
+local tpTab = win:CreateTab("Teleport")
+local miscTab = win:CreateTab("Misc")
+
+-- Variables
+local autoFish = false
+local autoSell = false
+local autoBuy = false
+
+-- Utils
+function randomDelay(min, max)
+    return math.random(min * 100, max * 100) / 100
+end
+
+function simulateInput(key)
+    keypress(key)
+    task.wait(0.1)
+    keyrelease(key)
+end
+
+-- AUTO MANCING
+autoTab:CreateToggle("Auto Mancing", function(v)
+    autoFish = v
+    task.spawn(function()
+        while autoFish do
+            -- Casting
+            FischRemote:FireServer("Cast")
+            task.wait(randomDelay(2, 3))
+
+            -- Shake
+            FischRemote:FireServer("Shake")
+            task.wait(randomDelay(1, 1.5))
+
+            -- Reel
+            FischRemote:FireServer("Reel")
+            task.wait(randomDelay(2, 3.5))
+        end
+    end)
+end)
+
+-- AUTO JUAL
+autoTab:CreateToggle("Auto Jual Tiap 60 Detik", function(v)
+    autoSell = v
+    task.spawn(function()
+        while autoSell do
+            FischRemote:FireServer("Sell")
+            task.wait(randomDelay(58, 65)) -- 1 menit acak
+        end
+    end)
+end)
+
+-- AUTO BELI
+autoTab:CreateToggle("Auto Beli Rod & Umpan", function(v)
+    autoBuy = v
+    task.spawn(function()
+        while autoBuy do
+            FischRemote:FireServer("BuyRod")
+            task.wait(1)
+            FischRemote:FireServer("BuyBait", "Quality Bait Crate")
+            task.wait(randomDelay(60, 70))
+        end
+    end)
+end)
+
+-- TELEPORT UI
+local lokasi = {
+    ["Spawn"] = CFrame.new(0, 5, 0),
+    ["Dock"] = CFrame.new(100, 5, -200),
+    ["Fishing Spot A"] = CFrame.new(500, 5, 300),
+    ["Fishing Spot B"] = CFrame.new(-400, 5, 800),
+}
+tpTab:CreateDropdown("Pilih Lokasi", lokasi, function(opt)
+    plr.Character:MoveTo(lokasi[opt].Position)
+end)
+
+-- SERVER SEPI
+miscTab:CreateButton("Server Sepi", function()
+    local Http = game:GetService("HttpService")
+    local TP = game:GetService("TeleportService")
+    local id = game.PlaceId
+    local servers = Http:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..id.."/servers/Public?sortOrder=Asc&limit=100")).data
+    for i,v in pairs(servers) do
+        if v.playing < 5 then
+            TP:TeleportToPlaceInstance(id, v.id)
+            break
         end
     end
 end)
 
--- Rayfield UI
-loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Rayfield/main/source"))()
-local Window = Rayfield:CreateWindow({ Name = "Fisch Hub | Mobile", ConfigurationSaving = { Enabled = false }, Discord = { Enabled = false }, KeySystem = false })
-
--- State
-local autofish = false
-local autosell = false
-
--- Functions
-function fish()
-    while autofish do
-        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        if tool and tool:FindFirstChild("Remote") then
-            tool.Remote:InvokeServer("Fish")
-        end
-        task.wait(1.2)
+-- AUTO RECONNECT
+game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(state)
+    if state == Enum.TeleportState.Failed or state == Enum.TeleportState.Started then
+        repeat
+            task.wait(5)
+            game:GetService("TeleportService"):Teleport(game.PlaceId)
+        until false
     end
-end
-
-function sellLoop()
-    while autosell do
-        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SellAll"):FireServer()
-        task.wait(60)
-    end
-end
-
-function safeTweenTP(pos)
-    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local dist = (hrp.Position - pos).Magnitude
-    local time = math.clamp(dist / 50, 1, 4)
-    local tween = TweenService:Create(hrp, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
-    tween:Play()
-end
-
-function serverHopToLowPop()
-    local cursor = ""
-    local found = false
-    repeat
-        local url = "https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=Asc&limit=100&cursor="..cursor
-        local data = HttpService:JSONDecode(game:HttpGet(url))
-        for _, server in ipairs(data.data) do
-            if server.playing < 8 and server.id ~= game.JobId then
-                TeleportService:TeleportToPlaceInstance(PlaceId, server.id, LocalPlayer)
-                found = true
-                break
-            end
-        end
-        cursor = data.nextPageCursor or ""
-    until found or cursor == "" or not cursor
-end
-
--- === UI Elements ===
-local Tab = Window:CreateTab("Fisch Hub", 4483362458)
-
-Tab:CreateToggle({
-    Name = "Auto Fishing",
-    CurrentValue = false,
-    Callback = function(v)
-        autofish = v
-        if v then task.spawn(fish) end
-    end
-})
-
-Tab:CreateToggle({
-    Name = "Auto Sell (tiap 60 detik)",
-    CurrentValue = false,
-    Callback = function(v)
-        autosell = v
-        if v then task.spawn(sellLoop) end
-    end
-})
-
-Tab:CreateDropdown({
-    Name = "Teleport Lokasi",
-    Options = {"Mousewood", "Forsaken Veil", "Ancient Isle"},
-    CurrentOption = "Mousewood",
-    Callback = function(opt)
-        local locs = {
-            ["Mousewood"] = Vector3.new(-113, 8, -126),
-            ["Forsaken Veil"] = Vector3.new(2295, 12, -1234),
-            ["Ancient Isle"] = Vector3.new(-2022, 6, 1996)
-        }
-        if locs[opt] then safeTweenTP(locs[opt]) end
-    end
-})
-
-Tab:CreateButton({
-    Name = "Server Sepi",
-    Callback = function()
-        serverHopToLowPop()
-    end
-})
-
-Tab:CreateButton({
-    Name = "Sembunyikan UI (klik Show UI kecil)",
-    Callback = function()
-        Rayfield:Destroy()
-
-        local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-        ScreenGui.Name = "FischMiniUI"
-        ScreenGui.ResetOnSpawn = false
-
-        local btn = Instance.new("TextButton", ScreenGui)
-        btn.Size = UDim2.new(0, 90, 0, 30)
-        btn.Position = UDim2.new(1, -100, 0, 20)
-        btn.Text = "Show UI"
-        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        btn.TextColor3 = Color3.fromRGB(255,255,255)
-        btn.BorderSizePixel = 1
-        btn.AutoButtonColor = true
-
-        btn.MouseButton1Click:Connect(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/NamaKamu/RepoKamu/main/fisch_hub.lua"))()
-            btn:Destroy()
-        end)
-    end
-})
+end)
