@@ -1,4 +1,5 @@
---// Fisch Hub by Mister C // Aman, KRNL Mobile Friendly
+--// Fisch Hub by Mister C
+--// Aman, stabil, full fitur buat KRNL Mobile
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,17 +11,17 @@ local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
 
 -- Anti Lag
 settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-setfpscap(40)
+setfpscap(30)
 
--- UI
+-- UI Library
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/tenbitload/uilib/main/minimal.lua"))()
-local win = lib:Window("KAU APA")
+local win = lib:Window("Fisch Hub")
 
--- Toggle states
+-- Toggles
 local autofish = false
 local autosell = false
 
--- Lokasi Teleport
+-- Locations
 local locations = {
     ["Mousewood"] = Vector3.new(-143, 2, -400),
     ["Forsaken Veil"] = Vector3.new(520, 2, 1090),
@@ -49,7 +50,7 @@ task.spawn(function()
     end
 end)
 
--- UI Elements
+-- UI Setup
 win:Toggle("Auto Fishing", false, function(v)
     autofish = v
 end)
@@ -60,46 +61,4 @@ end)
 
 win:Dropdown("Teleport", {"Mousewood", "Forsaken Veil", "Ancient Isle"}, function(loc)
     if locations[loc] then
-        player.Character:MoveTo(locations[loc])
-    end
-end)
-
-win:Button("Server Sepi (Auto Hop)", function()
-    local placeId = game.PlaceId
-    local function getServers()
-        local cursor = nil
-        while true do
-            local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
-            if cursor then url = url .. "&cursor=" .. cursor end
-
-            local data = HttpService:JSONDecode(game:HttpGet(url))
-            for _, server in pairs(data.data) do
-                if server.playing < 5 and server.id ~= game.JobId then
-                    TeleportService:TeleportToPlaceInstance(placeId, server.id, player)
-                    return
-                end
-            end
-            cursor = data.nextPageCursor
-            if not cursor then break end
-        end
-    end
-    getServers()
-end)
-
--- Tombol Show/Hide UI (pojok kiri atas)
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Name = "FischUIToggle"
-toggleBtn.Parent = game.CoreGui
-toggleBtn.Size = UDim2.new(0, 100, 0, 30)
-toggleBtn.Position = UDim2.new(0, 10, 0, 10)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-toggleBtn.BorderSizePixel = 0
-toggleBtn.Text = "Fisch Hub"
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.TextSize = 14
-toggleBtn.Font = Enum.Font.SourceSansSemibold
-toggleBtn.ZIndex = 9999
-
-toggleBtn.MouseButton1Click:Connect(function()
-    win:ToggleUI()
-end)
+        player.Character:Move
