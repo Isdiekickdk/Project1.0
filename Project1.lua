@@ -10,11 +10,11 @@ local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
 
 -- Anti Lag
 settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-setfpscap(30)
+setfpscap(40)
 
 -- UI
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/tenbitload/uilib/main/minimal.lua"))()
-local win = lib:Window("Fisch Hub")
+local win = lib:Window("KAU APA")
 
 -- Toggle states
 local autofish = false
