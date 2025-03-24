@@ -1,44 +1,43 @@
--- Bypass Anti-Cheat Extreme (Standalone)
+-- Extreme Bypass for Fisch (Standalone, Safe Inject)
 pcall(function()
+    if not game:IsLoaded() then game.Loaded:Wait() end
     local mt = getrawmetatable(game)
     setreadonly(mt, false)
-    
-    local oldNamecall = mt.__namecall
+    local oldnamecall = mt.__namecall
+
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
         local args = {...}
         
-        -- Blokir laporan eksploit ke server
+        -- Block remote logs or suspicious calls
         if tostring(self):lower():find("log") or tostring(self):lower():find("report") then
-            return
+            return wait(9e9)
         end
 
-        if method == "Kick" then
-            return warn("Bypassed Kick Attempt")
+        -- Bypass anti-cheat function calls
+        if method == "Kick" or self.Name == "Kick" then
+            return wait(9e9)
         end
 
-        return oldNamecall(self, unpack(args))
+        return oldnamecall(self, unpack(args))
     end)
 
-    local oldIndex = mt.__index
-    mt.__index = newcclosure(function(self, key)
-        if tostring(key):lower():find("kick") then
-            return function() return nil end
-        end
-        return oldIndex(self, key)
+    -- Bypass detection functions
+    local old; old = hookfunction(checkcaller or isluau, function(...)
+        return true
     end)
 
-    setreadonly(mt, true)
+    -- Dummy environment overwrite
+    local fakeEnv = setmetatable({}, {__index = function() return function() end end})
+    setfenv(1, setmetatable(getfenv(), {__index = fakeEnv}))
 
-    -- Nonaktifkan LocalScript deteksi cheat
+    -- Nil all potential AC scripts
     for _,v in pairs(getgc(true)) do
-        if type(v) == "function" and islclosure(v) and not isexecutorclosure(v) then
-            local info = getinfo(v)
-            if info.name and (info.name:lower():find("kick") or info.name:lower():find("ban")) then
-                hookfunction(v, function() return end)
+        if typeof(v) == "function" and islclosure(v) and debug.getinfo(v).name then
+            local name = debug.getinfo(v).name:lower()
+            if name:find("detect") or name:find("ban") or name:find("kick") then
+                hookfunction(v, function() return nil end)
             end
         end
     end
-
-    warn("[Bypass] Extreme Anti-Cheat protection injected.")
 end)
