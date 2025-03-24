@@ -129,37 +129,6 @@ message = function(text, time)
     end)
 end
 
---// Extreme Anti-Cheat Bypass (Obfuscated)
-do
-    local mt = getrawmetatable(game)
-    local backup = {__namecall = mt.__namecall, __index = mt.__index}
-    setreadonly(mt, false)
-
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
-        if tostring(self):lower():find('check') or tostring(self):lower():find('anti') then
-            return nil
-        end
-        return backup.__namecall(self, ...)
-    end)
-
-    mt.__index = newcclosure(function(self, key)
-        if tostring(key):lower():find('check') or tostring(key):lower():find('anti') then
-            return nil
-        end
-        return backup.__index(self, key)
-    end)
-
-    game.DescendantAdded:Connect(function(obj)
-        if obj:IsA("LocalScript") or obj:IsA("Script") then
-            if tostring(obj.Name):lower():find("check") or tostring(obj.Name):lower():find("anti") then
-                obj:Destroy()
-            end
-        end
-    end)
-end
-
 --// UI
 local library = loadstring(game:HttpGet('https://github.com/xataxell/azure-hub/blob/main/library.lua?raw=true'))()
 local Automation = library:CreateWindow('Automation')
@@ -210,6 +179,37 @@ Market:Section('Fish')
 Market:Dropdown('Fish', {location = flags, flag = 'fishtobuy', list = FishNames})
 Market:Box('Amount', {type = 'number', default = 1, min = 1, max = 10000, location = flags, flag = 'fishamount'})
 Market:Button('Purchase Item', function() purchase:FireServer(flags['fishtobuy'], 'fish', nil, (flags['fishamount'] ~= '' and flags['fishamount'] or 1)) end)
+
+--// Extreme Anti-Cheat Bypass (Obfuscated)
+do
+    local mt = getrawmetatable(game)
+    local backup = {__namecall = mt.__namecall, __index = mt.__index}
+    setreadonly(mt, false)
+
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        if tostring(self):lower():find('check') or tostring(self):lower():find('anti') then
+            return nil
+        end
+        return backup.__namecall(self, ...)
+    end)
+
+    mt.__index = newcclosure(function(self, key)
+        if tostring(key):lower():find('check') or tostring(key):lower():find('anti') then
+            return nil
+        end
+        return backup.__index(self, key)
+    end)
+
+    game.DescendantAdded:Connect(function(obj)
+        if obj:IsA("LocalScript") or obj:IsA("Script") then
+            if tostring(obj.Name):lower():find("check") or tostring(obj.Name):lower():find("anti") then
+                obj:Destroy()
+            end
+        end
+    end)
+end
 
 --// Loops
 RunService.Heartbeat:Connect(function()
