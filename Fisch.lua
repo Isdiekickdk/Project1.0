@@ -1,63 +1,71 @@
--- Private Fisch Bypass - Obfuscated Custom Version (Exclusive)
+-- Premium Extreme Bypass v3 Final (Auto-Execute Safe)
 pcall(function()
     if not game:IsLoaded() then game.Loaded:Wait() end
 
-    local a = getrawmetatable(game)
-    setreadonly(a, false)
-    local b = a.__namecall
-    local c = a.__index
+    --==[ Metamethod Bypass ]==--
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local oldNamecall = mt.__namecall
+    local oldIndex = mt.__index
 
-    a.__namecall = newcclosure(function(d, ...)
-        local e = getnamecallmethod()
-        local f = {...}
-        local g = tostring(d):lower()
-        if g:find("log") or g:find("report") or g:find("ban") or g:find("kick") then
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if tostring(self):lower():find("log") or tostring(self):lower():find("report") or tostring(self):lower():find("exploit") then
             return wait(9e9)
         end
-        return b(d, unpack(f))
+        if method == "Kick" or self.Name == "Kick" then
+            return wait(9e9)
+        end
+        return oldNamecall(self, ...)
     end)
 
-    a.__index = newcclosure(function(d, h)
-        if tostring(h):lower():find("kick") or tostring(h):lower():find("ban") then
+    mt.__index = newcclosure(function(self, key)
+        if tostring(key):lower():find("kick") or tostring(key):lower():find("ban") then
             return function() return nil end
         end
-        return c(d, h)
+        return oldIndex(self, key)
     end)
-    setreadonly(a, true)
 
-    for i, j in pairs(getgc(true)) do
-        if typeof(j) == "function" and islclosure(j) and not isexecutorclosure(j) then
-            local k = debug.getinfo(j)
-            if k.name and (k.name:lower():find("kick") or k.name:lower():find("ban") or k.name:lower():find("detect")) then
-                hookfunction(j, function(...) return nil end)
+    setreadonly(mt, true)
+
+    --==[ Function Hooking - Anti Detection ]==--
+    for _,v in pairs(getgc(true)) do
+        if typeof(v) == "function" and islclosure(v) and not isexecutorclosure(v) then
+            local info = debug.getinfo(v)
+            if info.name and (info.name:lower():find("ban") or info.name:lower():find("kick") or info.name:lower():find("log") or info.name:lower():find("detect")) then
+                hookfunction(v, function(...) return nil end)
             end
         end
     end
 
-    local l = game:GetService("VirtualUser")
+    --==[ Anti-AFK + Fake Input ]==--
+    local vu = game:GetService("VirtualUser")
     game:GetService("Players").LocalPlayer.Idled:Connect(function()
-        l:Button2Down(Vector2.new(), workspace.CurrentCamera.CFrame)
+        vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
         task.wait(1)
-        l:Button2Up(Vector2.new(), workspace.CurrentCamera.CFrame)
+        vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
     end)
-
     task.spawn(function()
         while true do
             game:GetService("VirtualInputManager"):SendKeyEvent(true, "A", false, game)
-            task.wait(0.07)
+            task.wait(0.1)
             game:GetService("VirtualInputManager"):SendKeyEvent(false, "A", false, game)
-            task.wait(math.random(2, 4) + math.random())
+            task.wait(1.4 + math.random())
         end
     end)
 
+    --==[ Executor Spoofing ]==--
     if setidentity then pcall(function() setidentity(8) end) end
 
-    hookfunction(game:GetService("DataStoreService").GetDataStore, function()
+    --==[ DataStore Spoofing ]==--
+    local DSS = game:GetService("DataStoreService")
+    hookfunction(DSS.GetDataStore, function()
         return setmetatable({}, {
             __index = function() return function() return nil end end,
             __newindex = function() end
         })
     end)
 
-    warn("[Private Bypass] Exclusive custom version injected.")
+    --==[ Confirmation Log ]==--
+    warn("[Bypass] Premium Extreme v3 loaded successfully. You're now protected.")
 end)
